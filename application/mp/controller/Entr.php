@@ -54,6 +54,7 @@ class Entr
         $weObj->valid();
         $weObj->getRev();//获取微信服务器发来信息(不返回结果)，被动接口必须调用
         $msgData = $weObj->getRevData();//返回微信服务器发来的信息（数组）
+		$ziliao = $weObj->getUserInfo($msgData['FromUserName']);//获取发送者简单资料
         if($mpInfo['status']==0){
             replyText($mpInfo['desc']);exit;
         }
@@ -270,6 +271,11 @@ class Entr
      */
     public function keyword($keyword, $msg = [])
     {
+		$options=session('mp_options');
+        $weObj = new \Wechat($options);
+		$weObj->valid();
+        $weObj->getRev();
+		$ziliao = $weObj->getUserInfo($msg['FromUserName']);//获取发送者简单资料
         $rule = Db::name('mp_rule')->where(['mpid' => $this->mid, 'keyword' => $keyword, 'status' => '1'])
             ->where('event', 'null')
             ->order('id Desc')->find();
@@ -280,7 +286,8 @@ class Entr
                     break;
                 case 'text'://文本
                     $content = Db::name('mp_reply')->where(['reply_id' => $rule['reply_id']])->field('content')->find();
-                    replyText($content['content']);
+					$content = str_replace("%name%",$ziliao['nickname'],$content['content']);
+                    replyText($content);
                     break;
                 case 'image'://图片
                     $result = Db::name('mp_reply')->where(['reply_id' => $rule['reply_id']])->find();
@@ -297,7 +304,8 @@ class Entr
                                 $news[$key1]['Title'] = $v;
                             }
                             if ($key2 == 'content') {
-                                $news[$key1]['Description'] = $v;
+								$content = str_replace("%name%",$ziliao['nickname'],$v);
+                                $news[$key1]['Description'] = $content;
                             }
                             if ($key2 == 'url') {
                                 $news[$key1]['PicUrl'] = $v;
